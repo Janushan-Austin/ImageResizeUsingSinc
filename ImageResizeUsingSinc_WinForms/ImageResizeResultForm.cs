@@ -68,32 +68,31 @@ namespace ImageResizeUsingSinc
             
             int fourthPixelDistance = originalBitmapData.BytesPerPixel * 4;
             int lastColIndex = (originalBitmapData.Width - originalBitmapData.BytesPerPixel);
-            int doubleBytesPerPixel = 2 * originalBitmapData.BytesPerPixel;
 
-            for (int y = 0; y < originalBitmapData.Height; y++)
+            int originalHeightStride = originalBitmapData.Height * originalBitmapData.Stride;
+            int doubleBytesPerPixel = 2 * originalBitmapData.BytesPerPixel;
+            int doubledDoubleBytesPerPixel = 2 * doubledBitmapData.BytesPerPixel;
+            int doubledDoubleStride = doubledBitmapData.Stride * 2;
+
+            for (int originalRow = 0, doubledRow = 0; originalRow < originalHeightStride; originalRow += originalBitmapData.Stride, doubledRow += doubledDoubleStride)
             {
-                int originalRow = originalBitmapData.Stride * y;
-                int doubledRow = doubledBitmapData.Stride * y * 2;
-                for (int x = 0, doubledX = 0; x < originalBitmapData.Width; x += originalBitmapData.BytesPerPixel, doubledX += 2 * doubledBitmapData.BytesPerPixel)
+                for (int x = 0, doubledX = 0; x < originalBitmapData.Width; x += originalBitmapData.BytesPerPixel, doubledX += doubledDoubleBytesPerPixel)
                 {
-                    doubledBitmapData.Bytes[doubledRow + doubledX] = originalBitmapData.Bytes[originalRow + x];
-                    doubledBitmapData.Bytes[doubledRow + doubledX + 1] = originalBitmapData.Bytes[originalRow + x + 1];
-                    doubledBitmapData.Bytes[doubledRow + doubledX + 2] = originalBitmapData.Bytes[originalRow + x + 2];
+                    doubledBitmapData[doubledRow + doubledX] = originalBitmapData[originalRow + x];
                 }
             }
 
-            for (int y = 0; y < originalBitmapData.Height; y++)
+            for (int row = 0, doubleRow = 0; row < originalHeightStride; row += originalBitmapData.Stride, doubleRow += doubledDoubleStride)
             {
-                int row = y * originalBitmapData.Stride;
-                int doubleRow = y * doubledBitmapData.Stride * 2;
                 cachedPixels.Clear();
                 for (int x = -3; x < 4; x++)
                 {
                     int byteIndex = row + Math.Abs(x) * originalBitmapData.BytesPerPixel;
-                    byte blue = originalBitmapData.Bytes[byteIndex];
-                    byte green = originalBitmapData.Bytes[byteIndex + 1];
-                    byte red = originalBitmapData.Bytes[byteIndex + 2];
-                    cachedPixels.Enqueue(new Pixel(red, green, blue));
+                    //byte blue = originalBitmapData.Bytes[byteIndex];
+                    //byte green = originalBitmapData.Bytes[byteIndex + 1];
+                    //byte red = originalBitmapData.Bytes[byteIndex + 2];
+                    //cachedPixels.Enqueue(new Pixel(red, green, blue));
+                    cachedPixels.Enqueue(originalBitmapData[byteIndex]);
                 }
                 for (int x = 0, estimatedPixelIndex = originalBitmapData.BytesPerPixel; x < originalBitmapData.Width; x += originalBitmapData.BytesPerPixel, estimatedPixelIndex += doubleBytesPerPixel)
                 {
@@ -102,61 +101,65 @@ namespace ImageResizeUsingSinc
                     {
                         fourthPixelByteIndex = lastColIndex + (lastColIndex - fourthPixelByteIndex);
                     }
-                    byte blue = originalBitmapData.Bytes[row + fourthPixelByteIndex];
-                    byte green = originalBitmapData.Bytes[row + fourthPixelByteIndex + 1];
-                    byte red = originalBitmapData.Bytes[row + fourthPixelByteIndex + 2];
+                    //byte blue = originalBitmapData.Bytes[row + fourthPixelByteIndex];
+                    //byte green = originalBitmapData.Bytes[row + fourthPixelByteIndex + 1];
+                    //byte red = originalBitmapData.Bytes[row + fourthPixelByteIndex + 2];
 
-                    cachedPixels.Enqueue(new Pixel(red, green, blue));
+                    //cachedPixels.Enqueue(new Pixel(red, green, blue));
+                    cachedPixels.Enqueue(originalBitmapData[row + fourthPixelByteIndex]);
 
                     Pixel estimatedPixel = SincFunction(cachedPixels.ToList());
-                    doubledBitmapData.Bytes[doubleRow + estimatedPixelIndex] = estimatedPixel.Blue;
-                    doubledBitmapData.Bytes[doubleRow + estimatedPixelIndex + 1] = estimatedPixel.Green;
-                    doubledBitmapData.Bytes[doubleRow + estimatedPixelIndex + 2] = estimatedPixel.Red;
+                    doubledBitmapData[doubleRow + estimatedPixelIndex] = estimatedPixel;
+                    //doubledBitmapData.Bytes[doubleRow + estimatedPixelIndex] = estimatedPixel.Blue;
+                    //doubledBitmapData.Bytes[doubleRow + estimatedPixelIndex + 1] = estimatedPixel.Green;
+                    //doubledBitmapData.Bytes[doubleRow + estimatedPixelIndex + 2] = estimatedPixel.Red;
 
                     cachedPixels.Dequeue();
                 }
             }
 
-            //int fourStrides = doubledBitmapData.Stride * 8;
-            //int doubleStride = doubledBitmapData.Stride * 2;
-            //int heightStride = doubledBitmapData.Height * doubledBitmapData.Stride;
-            //for (int x = 0; x < doubledBitmapData.Width; x += doubledBitmapData.BytesPerPixel)
-            //{
-            //    int lastRowIndex = (doubledBitmapData.Height - 1) * doubledBitmapData.Stride + x;
-            //    cachedPixels.Clear();
-            //    for (int y = -3; y < 4; y++)
-            //    {
-            //        int byteIndex = x + Math.Abs(y) * doubleStride;
-            //        byte blue = doubledBitmapData.Bytes[byteIndex];
-            //        byte green = doubledBitmapData.Bytes[byteIndex + 1];
-            //        byte red = doubledBitmapData.Bytes[byteIndex + 2];
-            //        cachedPixels.Enqueue(new Pixel(red, green, blue));
-            //    }
-            //    for (int y = 0, estimatedPixelIndex = doubledBitmapData.Stride + x; y < heightStride; y += doubleStride, estimatedPixelIndex += doubleStride)
-            //    {
-            //        int fourthPixelByteIndex = y + fourStrides + x;
-            //        if (fourthPixelByteIndex >= heightStride)
-            //        {
-            //            fourthPixelByteIndex = lastRowIndex + (lastRowIndex - fourthPixelByteIndex);
-            //        }
-            //        byte blue = doubledBitmapData.Bytes[fourthPixelByteIndex];
-            //        byte green = doubledBitmapData.Bytes[fourthPixelByteIndex + 1];
-            //        byte red = doubledBitmapData.Bytes[fourthPixelByteIndex + 2];
+            int doubledEightStrides = doubledBitmapData.Stride * 8;
+            int heightStride = doubledBitmapData.Height * doubledBitmapData.Stride;
+            int lastRowIndexStart = (doubledBitmapData.Height - 1) * doubledBitmapData.Stride;
+            for (int x = 0, lastRowIndex = lastRowIndexStart; x < doubledBitmapData.Width; x += doubledBitmapData.BytesPerPixel, lastRowIndex += doubledBitmapData.BytesPerPixel)
+            {
+                //int lastRowIndex = lastRowIndexStart+ x;
+                cachedPixels.Clear();
+                for (int y = -3; y < 4; y++)
+                {
+                    int byteIndex = x + Math.Abs(y) * doubledDoubleStride;
+                    //byte blue = doubledBitmapData.Bytes[byteIndex];
+                    //byte green = doubledBitmapData.Bytes[byteIndex + 1];
+                    //byte red = doubledBitmapData.Bytes[byteIndex + 2];
+                    //cachedPixels.Enqueue(new Pixel(red, green, blue));
+                    cachedPixels.Enqueue(doubledBitmapData[byteIndex]);
+                }
+                for (int y = 0, estimatedPixelIndex = doubledBitmapData.Stride + x; y < heightStride; y += doubledDoubleStride, estimatedPixelIndex += doubledDoubleStride)
+                {
+                    int fourthPixelByteIndex = y + doubledEightStrides + x;
+                    if (fourthPixelByteIndex >= heightStride)
+                    {
+                        fourthPixelByteIndex = lastRowIndex + (lastRowIndex - fourthPixelByteIndex);
+                    }
+                    //byte blue = doubledBitmapData.Bytes[fourthPixelByteIndex];
+                    //byte green = doubledBitmapData.Bytes[fourthPixelByteIndex + 1];
+                    //byte red = doubledBitmapData.Bytes[fourthPixelByteIndex + 2];
 
-            //        cachedPixels.Enqueue(new Pixel(red, green, blue));
+                    //cachedPixels.Enqueue(new Pixel(red, green, blue));
+                    cachedPixels.Enqueue(doubledBitmapData[fourthPixelByteIndex]);
 
-            //        Pixel estimatedPixel = SincFunction(cachedPixels.ToList());
-            //        doubledBitmapData.Bytes[estimatedPixelIndex] = estimatedPixel.Blue;
-            //        doubledBitmapData.Bytes[estimatedPixelIndex + 1] = estimatedPixel.Green;
-            //        doubledBitmapData.Bytes[estimatedPixelIndex + 2] = estimatedPixel.Red;
+                    Pixel estimatedPixel = SincFunction(cachedPixels.ToList());
+                    doubledBitmapData[estimatedPixelIndex] = estimatedPixel;
+                    //doubledBitmapData.Bytes[estimatedPixelIndex] = estimatedPixel.Blue;
+                    //doubledBitmapData.Bytes[estimatedPixelIndex + 1] = estimatedPixel.Green;
+                    //doubledBitmapData.Bytes[estimatedPixelIndex + 2] = estimatedPixel.Red;
 
-            //        cachedPixels.Dequeue();
-            //    }
-            //}
-            return doubledBitmapData.WriteToBitmap();
-            //return doubledBitmap;
+                    cachedPixels.Dequeue();
+                }
+            }
+            //return doubledBitmapData.WriteToBitmap();
+            return doubledBitmap;
         }
-
     }
     public class Pixel
     {
@@ -174,6 +177,7 @@ namespace ImageResizeUsingSinc
     public class BitmapData
     {
         public byte[] Bytes;
+        public IntPtr PixelPtr { get; private set; }
         public int BytesPerPixel;
         public int Height;
         public int Width;
@@ -187,6 +191,31 @@ namespace ImageResizeUsingSinc
             ReadBitmapData(bitmap);
         }
 
+        public Pixel this[int index]
+        {
+            get
+            {
+                IntPtr pixelPtr = IntPtr.Add(PixelPtr, index);
+                byte blue = Marshal.ReadByte(pixelPtr);
+                return new Pixel(Marshal.ReadByte(pixelPtr,2), Marshal.ReadByte(pixelPtr, 1), Marshal.ReadByte(pixelPtr));
+            }
+            set
+            {
+                IntPtr bluePtr = IntPtr.Add(PixelPtr, index);
+                IntPtr greenPtr = IntPtr.Add(PixelPtr, index + 1);
+                IntPtr redPtr = IntPtr.Add(PixelPtr, index + 2);
+                Marshal.WriteByte(bluePtr, value.Blue);
+                Marshal.WriteByte(greenPtr, value.Green);
+                Marshal.WriteByte(redPtr, value.Red);
+            }
+        }
+
+        public Pixel this[int row, int col]
+        {
+            get => this[row * Stride + col];
+            set => this[row * Stride + col] = value;
+        }
+
         public void ReadBitmapData(Bitmap bitmap)
         {
             PixelFormat = bitmap.PixelFormat;
@@ -198,12 +227,13 @@ namespace ImageResizeUsingSinc
             
             BytesPerPixel = Bitmap.GetPixelFormatSize(bitmap.PixelFormat) / 8;
 
+            PixelPtr = bitmapData.Scan0;
             Height = bitmapData.Height;
             Width = bitmapData.Width * BytesPerPixel;
             Stride = Math.Abs(bitmapData.Stride);
 
-            Bytes = new byte[Stride * Height];
-            Marshal.Copy(bitmapData.Scan0, Bytes, 0, Bytes.Length);
+            //Bytes = new byte[Stride * Height];
+            //Marshal.Copy(bitmapData.Scan0, Bytes, 0, Bytes.Length);
             bitmap.UnlockBits(bitmapData);
         }
 
